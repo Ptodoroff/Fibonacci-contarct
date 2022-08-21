@@ -1,25 +1,61 @@
-import { EthProvider } from "./contexts/EthContext";
-import Intro from "./components/Intro/";
-import Setup from "./components/Setup";
-import Demo from "./components/Demo";
-import Footer from "./components/Footer";
-import "./App.css";
+import React, { useEffect, useState } from 'react';
+import Fibonacci from './contracts/Fib.json';
+import { getWeb3 } from './utils.js';
 
 function App() {
+  const [web3, setWeb3] = useState(undefined);
+  const [contract, setContract] = useState(undefined);
+  const [result, setResult] = useState(undefined);
+
+  useEffect(() => {
+    const init = async () => {
+      const web3 = await getWeb3();
+
+      const networkId = await web3.eth.net.getId();
+      const deployedNetwork = Fibonacci.networks[networkId];
+      const contract = new web3.eth.Contract(
+        Fibonacci.abi,
+        deployedNetwork && deployedNetwork.address,
+      );
+
+      contract.options.address= "0x65Faf7661789254858121630f99a489A54c7DbB1"
+      setWeb3(web3);
+      setContract(contract);
+    }
+    init();
+  }, []);
+
+
+  async function calculate(e) {
+    e.preventDefault();
+    const result = await contract.methods
+      .fib(e.target.elements[0].value)
+      .call();
+    setResult(result);
+  }
+
+  if (!web3) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <EthProvider>
-      <div id="App" >
-        <div className="container">
-          <Intro />
-          <hr />
-          <Setup />
-          <hr />
-          <Demo />
-          <hr />
-          <Footer />
+    <div className="container">
+      <h1 className="text-center">Fibonacci</h1>
+
+      <div className="row">
+        <div className="col-sm-12">
+          <form onSubmit={e => calculate(e)}>
+            <div className="form-group">
+              <label htmlFor="number">Fibonacci sequence of</label>
+              <input type="number" className="form-control" id="number" />
+            </div>
+            <button type="submit" className="btn btn-primary">Submit</button>
+            <p>{result && `Result: ${result}`}</p>
+          </form>
         </div>
       </div>
-    </EthProvider>
+
+    </div>
   );
 }
 
